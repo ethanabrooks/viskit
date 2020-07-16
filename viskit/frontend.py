@@ -2,11 +2,11 @@ import sys
 
 from viskit.core import AttrDict
 
-sys.path.append('.')
+sys.path.append(".")
 import matplotlib
 import os
 
-matplotlib.use('Agg')
+matplotlib.use("Agg")
 import flask  # import Flask, render_template, send_from_directory
 from viskit import core
 import sys
@@ -18,19 +18,19 @@ import plotly.offline as po
 import plotly.graph_objs as go
 
 named_colors = [
-    'dodgerblue',
-    'darkorange',
-    'green',
-    'cyan',
-    'magenta',
-    'orange',
-    'yellow',
-    'black',
-    'blue',
-    'brown',
-    'lime',
-    'pink',
-    'purple',
+    "dodgerblue",
+    "darkorange",
+    "green",
+    "cyan",
+    "magenta",
+    "orange",
+    "yellow",
+    "black",
+    "blue",
+    "brown",
+    "lime",
+    "pink",
+    "purple",
 ]
 
 
@@ -42,8 +42,9 @@ def sliding_mean(data_array, window=5):
     data_array = np.array(data_array)
     new_list = []
     for i in range(len(data_array)):
-        indices = list(range(max(i - window + 1, 0),
-                             min(i + window + 1, len(data_array))))
+        indices = list(
+            range(max(i - window + 1, 0), min(i + window + 1, len(data_array)))
+        )
         avg = 0
         for j in indices:
             avg += data_array[j]
@@ -55,30 +56,31 @@ def sliding_mean(data_array, window=5):
 
 import itertools
 
-app = flask.Flask(__name__, static_url_path='/static')
+app = flask.Flask(__name__, static_url_path="/static")
 
 exps_data = None
 plottable_keys = None
 distinct_params = None
 
 
-@app.route('/js/<path:path>')
+@app.route("/js/<path:path>")
 def send_js(path):
-    return flask.send_from_directory('js', path)
+    return flask.send_from_directory("js", path)
 
 
-@app.route('/css/<path:path>')
+@app.route("/css/<path:path>")
 def send_css(path):
-    return flask.send_from_directory('css', path)
+    return flask.send_from_directory("css", path)
+
 
 def create_bar_chart(
-        plot_lists,
-        use_median=False,
-        plot_width=None,
-        plot_height=None,
-        title=None,
-        value_i=-1,
-    ):
+    plot_lists,
+    use_median=False,
+    plot_width=None,
+    plot_height=None,
+    title=None,
+    value_i=-1,
+):
     """
     plot_lists is a list of lists.
     Each outer list represents different y-axis attributes.
@@ -87,23 +89,26 @@ def create_bar_chart(
     Each plot is an AttrDict which should have the elements used below.
     """
 
-    x_axis = [(subplot['plot_key'], subplot['means']) for plot_list in plot_lists for subplot in plot_list if subplot['x_key']]
-    plot_lists = [[subplot for subplot in plot_list] for plot_list in plot_lists if not plot_list[0]['x_key']]
-    xlabel = x_axis[0][0] if len(x_axis) else 'iteration'
+    x_axis = [
+        (subplot["plot_key"], subplot["means"])
+        for plot_list in plot_lists
+        for subplot in plot_list
+        if subplot["x_key"]
+    ]
+    plot_lists = [
+        [subplot for subplot in plot_list]
+        for plot_list in plot_lists
+        if not plot_list[0]["x_key"]
+    ]
+    xlabel = x_axis[0][0] if len(x_axis) else "iteration"
 
     p25, p50, p75 = [], [], []
     num_y_axes = len(plot_lists)
     fig = tools.make_subplots(
-        rows=num_y_axes,
-        cols=1,
-        print_grid=False,
-        shared_xaxes=True,
+        rows=num_y_axes, cols=1, print_grid=False, shared_xaxes=True,
     )
     fig.layout.update(
-        width=plot_width,
-        height=plot_height,
-        title=title,
-        barmode='group',
+        width=plot_width, height=plot_height, title=title, barmode="group",
     )
     all_plot_keys = []
     for plot_list in plot_lists:
@@ -135,46 +140,36 @@ def create_bar_chart(
                 # be correct, but often will be misleading (e.g. "std of mean"
                 # vs "mean of std" if each trial measures its own mean/std).
                 # error_y=dict(
-                    # type='data',
-                    # symmetric=False,
-                    # array=[error],
-                    # arrayminus=[error_minus],
-                    # visible=True,
+                # type='data',
+                # symmetric=False,
+                # array=[error],
+                # arrayminus=[error_minus],
+                # visible=True,
                 # ),
                 name=plt.legend,
-                showlegend=y_idx==0,
+                showlegend=y_idx == 0,
                 legendgroup=plt.legend,
-                marker=dict(
-                    color=named_colors[plt_idx % len(named_colors)],
-                ),
+                marker=dict(color=named_colors[plt_idx % len(named_colors)],),
             )
             fig.append_trace(trace, y_idx_plotly, 1)
-        fig['layout']['yaxis{}'.format(y_idx_plotly)].update(
-            title=plt.plot_key,
-        )
+        fig["layout"]["yaxis{}".format(y_idx_plotly)].update(title=plt.plot_key,)
 
-    fig_div = po.plot(
-        fig,
-        output_type='div',
-        include_plotlyjs=False,
-    )
+    fig_div = po.plot(fig, output_type="div", include_plotlyjs=False,)
     if "footnote" in plot_list[0]:
-        footnote = "<br />".join([
-            r"<span><b>%s</b></span>: <span>%s</span>" % (
-                plt.legend, plt.footnote)
-            for plt in plot_list
-        ])
+        footnote = "<br />".join(
+            [
+                r"<span><b>%s</b></span>: <span>%s</span>" % (plt.legend, plt.footnote)
+                for plt in plot_list
+            ]
+        )
         return r"%s<div>%s</div>" % (fig_div, footnote)
     else:
         return fig_div
 
+
 def make_plot(
-        plot_lists,
-        use_median=False,
-        plot_width=None,
-        plot_height=None,
-        title=None,
-    ):
+    plot_lists, use_median=False, plot_width=None, plot_height=None, title=None,
+):
     """
     plot_lists is a list of lists.
     Each outer list represents different y-axis attributes.
@@ -183,17 +178,24 @@ def make_plot(
     Each plot is an AttrDict which should have the elements used below.
     """
 
-    x_axis = [(subplot['plot_key'], subplot['means']) for plot_list in plot_lists for subplot in plot_list if subplot['x_key']]
-    plot_lists = [[subplot for subplot in plot_list] for plot_list in plot_lists if not plot_list[0]['x_key']]
-    xlabel = x_axis[0][0] if len(x_axis) else 'iteration'
+    x_axis = [
+        (subplot["plot_key"], subplot["means"])
+        for plot_list in plot_lists
+        for subplot in plot_list
+        if subplot["x_key"]
+    ]
+    plot_lists = [
+        [subplot for subplot in plot_list]
+        for plot_list in plot_lists
+        if not plot_list[0]["x_key"]
+    ]
+    xlabel = x_axis[0][0] if len(x_axis) else "iteration"
 
     p25, p50, p75 = [], [], []
     num_y_axes = len(plot_lists)
     fig = tools.make_subplots(rows=num_y_axes, cols=1, print_grid=False)
-    fig['layout'].update(
-        width=plot_width,
-        height=plot_height,
-        title=title,
+    fig["layout"].update(
+        width=plot_width, height=plot_height, title=title,
     )
 
     for y_idx, plot_list in enumerate(plot_lists):
@@ -222,12 +224,12 @@ def make_plot(
             errors = go.Scatter(
                 x=x + x[::-1],
                 y=y_upper + y_lower[::-1],
-                fill='tozerox',
+                fill="tozerox",
                 fillcolor=core.hex_to_rgb(color, 0.2),
                 line=go.scatter.Line(color=core.hex_to_rgb(color, 0)),
                 showlegend=False,
                 legendgroup=plt.legend,
-                hoverinfo='none',
+                hoverinfo="none",
             )
             values = go.Scatter(
                 x=x,
@@ -236,7 +238,7 @@ def make_plot(
                 legendgroup=plt.legend,
                 line=dict(color=core.hex_to_rgb(color)),
                 hoverlabel=dict(namelength=-1),
-                hoverinfo='all',
+                hoverinfo="all",
             )
             # plotly is 1-indexed like matplotlib for subplots
             y_idx_plotly = y_idx + 1
@@ -244,25 +246,22 @@ def make_plot(
             fig.append_trace(errors, y_idx_plotly, 1)
             title = plt.plot_key
             if len(title) > 30:
-                title_parts = title.split('/')
+                title_parts = title.split("/")
                 title = "<br />/".join(
                     title_parts[:-1]
                     + [r"<b>{}</b>".format(t) for t in title_parts[-1:]]
                 )
-            fig['layout']['yaxis{}'.format(y_idx_plotly)].update(
-                title=title,
-            )
-            fig['layout']['xaxis{}'.format(y_idx_plotly)].update(
-                title=xlabel,
-            )
+            fig["layout"]["yaxis{}".format(y_idx_plotly)].update(title=title,)
+            fig["layout"]["xaxis{}".format(y_idx_plotly)].update(title=xlabel,)
 
-    fig_div = po.plot(fig, output_type='div', include_plotlyjs=False)
+    fig_div = po.plot(fig, output_type="div", include_plotlyjs=False)
     if "footnote" in plot_list[0]:
-        footnote = "<br />".join([
-            r"<span><b>%s</b></span>: <span>%s</span>" % (
-                plt.legend, plt.footnote)
-            for plt in plot_list
-        ])
+        footnote = "<br />".join(
+            [
+                r"<span><b>%s</b></span>: <span>%s</span>" % (plt.legend, plt.footnote)
+                for plt in plot_list
+            ]
+        )
         return r"%s<div>%s</div>" % (fig_div, footnote)
     else:
         return fig_div
@@ -270,6 +269,7 @@ def make_plot(
 
 def make_plot_eps(plot_list, use_median=False, counter=0):
     import matplotlib.pyplot as _plt
+
     f, ax = _plt.subplots(figsize=(8, 5))
     for idx, plt in enumerate(plot_list):
         color = core.color_defaults[idx % len(core.color_defaults)]
@@ -283,67 +283,76 @@ def make_plot_eps(plot_list, use_median=False, counter=0):
             y = list(plt.means)
             y_upper = list(plt.means + plt.stds)
             y_lower = list(plt.means - plt.stds)
-        plt.legend = plt.legend.replace('rllab.algos.trpo.TRPO', 'TRPO')
-        plt.legend = plt.legend.replace('rllab.algos.vpg.VPG', 'REINFORCE')
-        plt.legend = plt.legend.replace('rllab.algos.erwr.ERWR', 'ERWR')
-        plt.legend = plt.legend.replace('sandbox.rein.algos.trpo_vime.TRPO',
-                                        'TRPO+VIME')
-        plt.legend = plt.legend.replace('sandbox.rein.algos.vpg_vime.VPG',
-                                        'REINFORCE+VIME')
-        plt.legend = plt.legend.replace('sandbox.rein.algos.erwr_vime.ERWR',
-                                        'ERWR+VIME')
-        plt.legend = plt.legend.replace('0.0001', '1e-4')
+        plt.legend = plt.legend.replace("rllab.algos.trpo.TRPO", "TRPO")
+        plt.legend = plt.legend.replace("rllab.algos.vpg.VPG", "REINFORCE")
+        plt.legend = plt.legend.replace("rllab.algos.erwr.ERWR", "ERWR")
+        plt.legend = plt.legend.replace(
+            "sandbox.rein.algos.trpo_vime.TRPO", "TRPO+VIME"
+        )
+        plt.legend = plt.legend.replace(
+            "sandbox.rein.algos.vpg_vime.VPG", "REINFORCE+VIME"
+        )
+        plt.legend = plt.legend.replace(
+            "sandbox.rein.algos.erwr_vime.ERWR", "ERWR+VIME"
+        )
+        plt.legend = plt.legend.replace("0.0001", "1e-4")
         #         plt.legend = plt.legend.replace('0.001', 'TRPO+VIME')
         #         plt.legend = plt.legend.replace('0', 'TRPO')
         #         plt.legend = plt.legend.replace('0.005', 'TRPO+L2')
 
         if idx == 0:
-            plt.legend = 'TRPO (0.0)'
+            plt.legend = "TRPO (0.0)"
         if idx == 1:
-            plt.legend = 'TRPO+VIME (103.7)'
+            plt.legend = "TRPO+VIME (103.7)"
         if idx == 2:
-            plt.legend = 'TRPO+L2 (0.0)'
+            plt.legend = "TRPO+L2 (0.0)"
 
         ax.fill_between(
-            x, y_lower, y_upper, interpolate=True, facecolor=color,
-            linewidth=0.0, alpha=0.3)
+            x,
+            y_lower,
+            y_upper,
+            interpolate=True,
+            facecolor=color,
+            linewidth=0.0,
+            alpha=0.3,
+        )
         if idx == 2:
-            ax.plot(x, y, color=color, label=plt.legend, linewidth=2.0,
-                    linestyle="--")
+            ax.plot(x, y, color=color, label=plt.legend, linewidth=2.0, linestyle="--")
         else:
             ax.plot(x, y, color=color, label=plt.legend, linewidth=2.0)
         ax.grid(True)
-        ax.spines['right'].set_visible(False)
-        ax.spines['top'].set_visible(False)
+        ax.spines["right"].set_visible(False)
+        ax.spines["top"].set_visible(False)
         if counter == 1:
             #             ax.set_xlim([0, 120])
             ax.set_ylim([-3, 60])
             #             ax.set_xlim([0, 80])
 
-            loc = 'upper left'
+            loc = "upper left"
         elif counter == 2:
             ax.set_ylim([-0.04, 0.4])
 
             #             ax.set_ylim([-0.1, 0.4])
             ax.set_xlim([0, 2000])
-            loc = 'upper left'
+            loc = "upper left"
         elif counter == 3:
             #             ax.set_xlim([0, 1000])
-            loc = 'lower right'
+            loc = "lower right"
         elif counter == 4:
             #             ax.set_xlim([0, 800])
             #             ax.set_ylim([0, 2])
-            loc = 'lower right'
-        leg = ax.legend(loc=loc, prop={'size': 12}, ncol=1)
+            loc = "lower right"
+        leg = ax.legend(loc=loc, prop={"size": 12}, ncol=1)
         for legobj in leg.legendHandles:
             legobj.set_linewidth(5.0)
 
         def y_fmt(x, y):
-            return str(int(np.round(x / 1000.0))) + 'K'
+            return str(int(np.round(x / 1000.0))) + "K"
 
         import matplotlib.ticker as tick
+
         #         ax.xaxis.set_major_formatter(tick.FuncFormatter(y_fmt))
-        _plt.savefig('tmp' + str(counter) + '.pdf', bbox_inches='tight')
+        _plt.savefig("tmp" + str(counter) + ".pdf", bbox_inches="tight")
 
 
 def summary_name(exp, selector=None):
@@ -361,34 +370,34 @@ def summary_name(exp, selector=None):
 
 
 def check_nan(exp):
-    return all(
-        not np.any(np.isnan(vals)) for vals in list(exp.progress.values()))
+    return all(not np.any(np.isnan(vals)) for vals in list(exp.progress.values()))
+
 
 def get_plot_instruction(
-        plot_keys,
-        x_keys=None,
-        split_keys=None,
-        group_keys=None,
-        best_filter_key=None,
-        filters=None,
-        exclusions=None,
-        use_median=False,
-        only_show_best=False,
-        best_based_on_final=False,
-        gen_eps=False,
-        only_show_best_sofar=False,
-        best_is_lowest=False,
-        clip_plot_value=None,
-        plot_width=None,
-        plot_height=None,
-        filter_nan=False,
-        smooth_curve=False,
-        custom_filter=None,
-        legend_post_processor=None,
-        normalize_error=False,
-        make_bar_chart=False,
-        value_i=-1,  # TODO: add option to set value_i
-        custom_series_splitter=None,
+    plot_keys,
+    x_keys=None,
+    split_keys=None,
+    group_keys=None,
+    best_filter_key=None,
+    filters=None,
+    exclusions=None,
+    use_median=False,
+    only_show_best=False,
+    best_based_on_final=False,
+    gen_eps=False,
+    only_show_best_sofar=False,
+    best_is_lowest=False,
+    clip_plot_value=None,
+    plot_width=None,
+    plot_height=None,
+    filter_nan=False,
+    smooth_curve=False,
+    custom_filter=None,
+    legend_post_processor=None,
+    normalize_error=False,
+    make_bar_chart=False,
+    value_i=-1,  # TODO: add option to set value_i
+    custom_series_splitter=None,
 ):
     if x_keys is None:
         x_keys = []
@@ -468,14 +477,18 @@ def get_plot_instruction(
                 filtered_data = group_selector.extract()
                 if len(filtered_data) == 0:
                     continue
-                if (best_filter_key
-                        and best_filter_key not in group_keys
-                        and best_filter_key not in split_keys):
+                if (
+                    best_filter_key
+                    and best_filter_key not in group_keys
+                    and best_filter_key not in split_keys
+                ):
                     selectors = split_by_key(
                         group_selector, best_filter_key, distinct_params
                     )
                     scores = [
-                        get_selector_score(plot_key, selector, use_median, best_based_on_final)
+                        get_selector_score(
+                            plot_key, selector, use_median, best_based_on_final
+                        )
                         for selector in selectors
                     ]
 
@@ -487,26 +500,26 @@ def get_plot_instruction(
 
                         best_selector = selectors[best_idx]
                         filtered_data = best_selector.extract()
-                        print("For split '{0}', group '{1}':".format(
-                            split_title,
-                            group_legend,
-                        ))
-                        print("    best '{0}': {1}".format(
-                            best_filter_key,
-                            dict(best_selector._filters)[best_filter_key]
-                        ))
+                        print(
+                            "For split '{0}', group '{1}':".format(
+                                split_title, group_legend,
+                            )
+                        )
+                        print(
+                            "    best '{0}': {1}".format(
+                                best_filter_key,
+                                dict(best_selector._filters)[best_filter_key],
+                            )
+                        )
 
                 if only_show_best or only_show_best_sofar:
                     # Group by seed and sort.
                     # -----------------------
 
-                    filtered_params = core.extract_distinct_params(
-                        filtered_data, l=0)
+                    filtered_params = core.extract_distinct_params(filtered_data, l=0)
                     filtered_params2 = [p[1] for p in filtered_params]
                     filtered_params_k = [p[0] for p in filtered_params]
-                    product_space = list(itertools.product(
-                        *filtered_params2
-                    ))
+                    product_space = list(itertools.product(*filtered_params2))
                     data_best_regret = None
                     best_regret = np.inf if best_is_lowest else -np.inf
                     kv_string_best_regret = None
@@ -524,18 +537,18 @@ def get_plot_instruction(
                             max_size = max(sizes)
                             progresses = [
                                 np.concatenate(
-                                    [ps, np.ones(max_size - len(ps)) * np.nan])
-                                for ps in progresses]
+                                    [ps, np.ones(max_size - len(ps)) * np.nan]
+                                )
+                                for ps in progresses
+                            ]
 
                             if best_based_on_final:
                                 progresses = np.asarray(progresses)[:, -1]
                             if only_show_best_sofar:
                                 if best_is_lowest:
-                                    progresses = np.min(np.asarray(progresses),
-                                                        axis=1)
+                                    progresses = np.min(np.asarray(progresses), axis=1)
                                 else:
-                                    progresses = np.max(np.asarray(progresses),
-                                                        axis=1)
+                                    progresses = np.max(np.asarray(progresses), axis=1)
                             if use_median:
                                 medians = np.nanmedian(progresses, axis=0)
                                 regret = np.mean(medians)
@@ -544,16 +557,22 @@ def get_plot_instruction(
                                 regret = np.mean(means)
                             distinct_params_k = [p[0] for p in distinct_params]
                             distinct_params_v = [
-                                v for k, v in zip(filtered_params_k, params) if
-                                k in distinct_params_k]
+                                v
+                                for k, v in zip(filtered_params_k, params)
+                                if k in distinct_params_k
+                            ]
                             distinct_params_kv = [
-                                (k, v) for k, v in
-                                zip(distinct_params_k, distinct_params_v)]
-                            distinct_params_kv_string = str(
-                                distinct_params_kv).replace('), ', ')\t')
+                                (k, v)
+                                for k, v in zip(distinct_params_k, distinct_params_v)
+                            ]
+                            distinct_params_kv_string = str(distinct_params_kv).replace(
+                                "), ", ")\t"
+                            )
                             print(
-                                '{}\t{}\t{}'.format(regret, len(progresses),
-                                                    distinct_params_kv_string))
+                                "{}\t{}\t{}".format(
+                                    regret, len(progresses), distinct_params_kv_string
+                                )
+                            )
                             if best_is_lowest:
                                 change_regret = regret < best_regret
                             else:
@@ -565,32 +584,32 @@ def get_plot_instruction(
                                 kv_string_best_regret = distinct_params_kv_string
 
                     print(group_selector._filters)
-                    print('best regret: {}'.format(best_regret))
+                    print("best regret: {}".format(best_regret))
                     # -----------------------
                     if np.isfinite(best_regret):
                         progresses = [
-                            exp.progress.get(plot_key, np.array([np.nan])) for
-                            exp in data_best_regret]
+                            exp.progress.get(plot_key, np.array([np.nan]))
+                            for exp in data_best_regret
+                        ]
                         #                         progresses = [progress[:500] for progress in progresses ]
                         sizes = list(map(len, progresses))
                         # more intelligent:
                         max_size = max(sizes)
                         progresses = [
-                            np.concatenate(
-                                [ps, np.ones(max_size - len(ps)) * np.nan]) for
-                            ps in progresses]
-                        legend = '{} (mu: {:.3f}, std: {:.5f})'.format(
-                            group_legend, best_regret, np.std(best_progress))
+                            np.concatenate([ps, np.ones(max_size - len(ps)) * np.nan])
+                            for ps in progresses
+                        ]
+                        legend = "{} (mu: {:.3f}, std: {:.5f})".format(
+                            group_legend, best_regret, np.std(best_progress)
+                        )
                         window_size = np.maximum(
-                            int(np.round(max_size / float(1000))), 1)
+                            int(np.round(max_size / float(1000))), 1
+                        )
                         statistics = get_statistics(
                             progresses, use_median, normalize_error,
                         )
                         statistics = process_statistics(
-                            statistics,
-                            smooth_curve,
-                            clip_plot_value,
-                            window_size,
+                            statistics, smooth_curve, clip_plot_value, window_size,
                         )
                         to_plot.append(
                             AttrDict(
@@ -602,34 +621,29 @@ def get_plot_instruction(
                         if len(to_plot) > 0 and len(data) > 0:
                             to_plot[-1]["footnote"] = "%s; e.g. %s" % (
                                 kv_string_best_regret,
-                                data[0].params.get("exp_name", "NA"))
+                                data[0].params.get("exp_name", "NA"),
+                            )
                         else:
                             to_plot[-1]["footnote"] = ""
                 else:
                     progresses = [
-                        exp.progress.get(plot_key, np.array([np.nan])) for exp
-                        in filtered_data
+                        exp.progress.get(plot_key, np.array([np.nan]))
+                        for exp in filtered_data
                     ]
                     sizes = list(map(len, progresses))
                     # more intelligent:
                     max_size = max(sizes)
                     progresses = [
-                        np.concatenate(
-                            [ps, np.ones(max_size - len(ps)) * np.nan]) for ps
-                        in progresses]
-                    window_size = np.maximum(
-                        int(np.round(max_size / float(100))),
-                        1,
-                    )
+                        np.concatenate([ps, np.ones(max_size - len(ps)) * np.nan])
+                        for ps in progresses
+                    ]
+                    window_size = np.maximum(int(np.round(max_size / float(100))), 1,)
 
                     statistics = get_statistics(
                         progresses, use_median, normalize_error,
                     )
                     statistics = process_statistics(
-                        statistics,
-                        smooth_curve,
-                        clip_plot_value,
-                        window_size,
+                        statistics, smooth_curve, clip_plot_value, window_size,
                     )
                     to_plot.append(
                         AttrDict(
@@ -645,18 +659,26 @@ def get_plot_instruction(
         if len(list_of_list_of_plot_dicts) > 0 and not gen_eps:
             fig_title = split_title
             if make_bar_chart:
-                plots.append(create_bar_chart(
-                    list_of_list_of_plot_dicts,
-                    use_median=use_median, title=fig_title,
-                    plot_width=plot_width, plot_height=plot_height,
-                    value_i=value_i,
-                ))
+                plots.append(
+                    create_bar_chart(
+                        list_of_list_of_plot_dicts,
+                        use_median=use_median,
+                        title=fig_title,
+                        plot_width=plot_width,
+                        plot_height=plot_height,
+                        value_i=value_i,
+                    )
+                )
             else:
-                plots.append(make_plot(
-                    list_of_list_of_plot_dicts,
-                    use_median=use_median, title=fig_title,
-                    plot_width=plot_width, plot_height=plot_height
-                ))
+                plots.append(
+                    make_plot(
+                        list_of_list_of_plot_dicts,
+                        use_median=use_median,
+                        title=fig_title,
+                        plot_width=plot_width,
+                        plot_height=plot_height,
+                    )
+                )
 
         if gen_eps:
             make_plot_eps(to_plot, use_median=use_median, counter=counter)
@@ -688,15 +710,11 @@ def get_selector_score(key, selector, use_median, best_based_on_final):
     """
     data = selector.extract()
     if best_based_on_final:
-        values = [
-            exp.progress.get(key, np.array([np.nan]))[-1]
-            for exp in data
-        ]
+        values = [exp.progress.get(key, np.array([np.nan]))[-1] for exp in data]
     else:
-        values = np.concatenate([
-            exp.progress.get(key, np.array([np.nan]))
-            for exp in data
-        ] or [[np.nan]])
+        values = np.concatenate(
+            [exp.progress.get(key, np.array([np.nan])) for exp in data] or [[np.nan]]
+        )
 
     if len(values) == 0 or not np.isfinite(values).all():
         return np.nan
@@ -723,19 +741,11 @@ def get_statistics(progresses, use_median, normalize_errors):
     else:
         stds = np.nanstd(progresses, axis=0)
         if normalize_errors:
-            stds /= np.sqrt(np.sum((1. - np.isnan(progresses)), axis=0))
-        return dict(
-            means=np.nanmean(progresses, axis=0),
-            stds=stds,
-        )
+            stds /= np.sqrt(np.sum((1.0 - np.isnan(progresses)), axis=0))
+        return dict(means=np.nanmean(progresses, axis=0), stds=stds,)
 
 
-def process_statistics(
-        statistics,
-        smooth_curve,
-        clip_plot_value,
-        window_size
-):
+def process_statistics(statistics, smooth_curve, clip_plot_value, window_size):
     """
     Smoothen and clip time-series data.
     """
@@ -746,9 +756,7 @@ def process_statistics(
             clean_statistics[k] = sliding_mean(v, window=window_size)
         if clip_plot_value is not None:
             clean_statistics[k] = np.clip(
-                clean_statistics[k],
-                -clip_plot_value,
-                clip_plot_value,
+                clean_statistics[k], -clip_plot_value, clip_plot_value,
             )
     return clean_statistics
 
@@ -777,11 +785,7 @@ def split_by_keys(base_selector, keys, distinct_params):
     :return:
     """
     list_of_key_and_unique_value = [
-        [
-            (key, v)
-            for v in get_possible_values(distinct_params, key)
-        ]
-        for key in keys
+        [(key, v) for v in get_possible_values(distinct_params, key)] for key in keys
     ]
     """
     elements of list_of_key_and_unique_value should look like:
@@ -795,9 +799,7 @@ def split_by_keys(base_selector, keys, distinct_params):
     """
     selectors = []
     descriptions = []
-    for key_and_value_list in itertools.product(
-            *list_of_key_and_unique_value
-    ):
+    for key_and_value_list in itertools.product(*list_of_key_and_unique_value):
         selector = None
         keys = []
         for key, value in key_and_value_list:
@@ -807,14 +809,16 @@ def split_by_keys(base_selector, keys, distinct_params):
             else:
                 selector = selector.where(key, value)
         selectors.append(selector)
-        descriptions.append(", ".join([
-            "{0}={1}".format(
-                shorten_key(key),
-                value,
+        descriptions.append(
+            ", ".join(
+                [
+                    "{0}={1}".format(shorten_key(key), value,)
+                    for key, value in key_and_value_list
+                ]
             )
-            for key, value in key_and_value_list
-        ]))
+        )
     return selectors, descriptions
+
 
 def parse_float_arg(args, key):
     x = args.get(key, "")
@@ -842,16 +846,16 @@ def plot_div():
     exclusions = json.loads(exclusions_json)
     if len(best_filter_key) == 0:
         best_filter_key = None
-    use_median = args.get("use_median", "") == 'True'
-    gen_eps = args.get("eps", "") == 'True'
-    only_show_best = args.get("only_show_best", "") == 'True'
-    best_based_on_final = args.get("best_based_on_final", "") == 'True'
-    only_show_best_sofar = args.get("only_show_best_sofar", "") == 'True'
-    best_is_lowest = args.get("best_is_lowest", "") == 'True'
-    normalize_error = args.get("normalize_error", "") == 'True'
-    make_bar_chart = args.get("make_bar_chart", "") == 'True'
-    filter_nan = args.get("filter_nan", "") == 'True'
-    smooth_curve = args.get("smooth_curve", "") == 'True'
+    use_median = args.get("use_median", "") == "True"
+    gen_eps = args.get("eps", "") == "True"
+    only_show_best = args.get("only_show_best", "") == "True"
+    best_based_on_final = args.get("best_based_on_final", "") == "True"
+    only_show_best_sofar = args.get("only_show_best_sofar", "") == "True"
+    best_is_lowest = args.get("best_is_lowest", "") == "True"
+    normalize_error = args.get("normalize_error", "") == "True"
+    make_bar_chart = args.get("make_bar_chart", "") == "True"
+    filter_nan = args.get("filter_nan", "") == "True"
+    smooth_curve = args.get("smooth_curve", "") == "True"
     clip_plot_value = parse_float_arg(args, "clip_plot_value")
     plot_width = parse_float_arg(args, "plot_width")
     plot_height = parse_float_arg(args, "plot_height")
@@ -863,13 +867,11 @@ def plot_div():
     else:
         custom_filter = None
     legend_post_processor = args.get("legend_post_processor", None)
-    if legend_post_processor is not None and len(
-            legend_post_processor.strip()) > 0:
+    if legend_post_processor is not None and len(legend_post_processor.strip()) > 0:
         legend_post_processor = safer_eval(legend_post_processor)
     else:
         legend_post_processor = None
-    if custom_series_splitter is not None and len(
-            custom_series_splitter.strip()) > 0:
+    if custom_series_splitter is not None and len(custom_series_splitter.strip()) > 0:
         custom_series_splitter = safer_eval(custom_series_splitter)
     else:
         custom_series_splitter = None
@@ -910,14 +912,15 @@ def safer_eval(some_string):
     """
     if "__" in some_string or "import" in some_string:
         raise Exception("string to eval looks suspicious")
-    return eval(some_string, {'__builtins__': {}})
+    return eval(some_string, {"__builtins__": {}})
+
 
 @app.route("/")
 def index():
     if "AverageReturn" in plottable_keys:
         plot_keys = ["AverageReturn"]
-    elif 'training/return-average' in plottable_keys:
-        plot_keys = ['training/return-average']
+    elif "training/return-average" in plottable_keys:
+        plot_keys = ["training/return-average"]
     elif len(plottable_keys) > 0:
         plot_keys = plottable_keys[0:1]
     else:
@@ -930,15 +933,14 @@ def index():
         group_keys=[],
         plottable_keys=plottable_keys,
         distinct_param_keys=[str(k) for k, v in distinct_params],
-        distinct_params=dict([(str(k), list(map(str, v)))
-                              for k, v in distinct_params]),
+        distinct_params=dict([(str(k), list(map(str, v))) for k, v in distinct_params]),
     )
 
 
-@app.route("/reload-data", methods=['POST'])
+@app.route("/reload-data", methods=["POST"])
 def reload():
     reload_data()
-    return 'Reloaded'
+    return "Reloaded"
 
 
 def reload_data():
@@ -946,13 +948,9 @@ def reload_data():
     global plottable_keys
     global distinct_params
     exps_data = core.load_exps_data(
-        args.data_paths,
-        args.data_filename,
-        args.params_filename,
-        args.disable_variant,
+        args.data_paths, args.data_filename, args.params_filename, args.disable_variant,
     )
-    plottable_keys = list(
-        set(flatten(list(exp.progress.keys()) for exp in exps_data)))
+    plottable_keys = list(set(flatten(list(exp.progress.keys()) for exp in exps_data)))
     plottable_keys = sorted([k for k in plottable_keys if k is not None])
     distinct_params = sorted(core.extract_distinct_params(exps_data))
 
@@ -960,17 +958,17 @@ def reload_data():
 def main():
     global args
     parser = argparse.ArgumentParser()
-    parser.add_argument("data_paths", type=str, nargs='*')
-    parser.add_argument("--prefix", type=str, nargs='?', default="???")
+    parser.add_argument("data_paths", type=str, nargs="*")
+    parser.add_argument("--prefix", type=str, nargs="?", default="???")
     parser.add_argument("--debug", action="store_true", default=False)
     parser.add_argument("--port", type=int, default=5000)
-    parser.add_argument("--disable-variant", default=False, action='store_true')
-    parser.add_argument("--data-filename",
-                        default='progress.csv',
-                        help='name of data file.')
-    parser.add_argument("--params-filename",
-                        default='params.json',
-                        help='name of params file.')
+    parser.add_argument("--disable-variant", default=False, action="store_true")
+    parser.add_argument(
+        "--data-filename", default="progress.csv", help="name of data file."
+    )
+    parser.add_argument(
+        "--params-filename", default="params.json", help="name of params file."
+    )
     args = parser.parse_args(sys.argv[1:])
 
     # load all folders following a prefix
@@ -987,11 +985,14 @@ def main():
     port = args.port
     try:
         print("View http://localhost:%d in your browser" % port)
-        app.run(host='0.0.0.0', port=port, debug=args.debug)
+        app.run(host="0.0.0.0", port=port, debug=args.debug)
     except OSError as e:
-        if e.strerror == 'Address already in use':
-            print("Port {} is busy. Try specifying a different port with ("
-                  "e.g.) --port=5001".format(port))
+        if e.strerror == "Address already in use":
+            print(
+                "Port {} is busy. Try specifying a different port with ("
+                "e.g.) --port=5001".format(port)
+            )
+
 
 if __name__ == "__main__":
     main()
